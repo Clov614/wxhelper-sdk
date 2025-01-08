@@ -36,8 +36,8 @@ type Client struct {
 	isLogin   bool
 }
 
-// GetMsgPair 获取消息对
-func (c *Client) GetMsgPair() (*MessagePairs, error) {
+// GetMsg 获取消息对
+func (c *Client) GetMsg() (*Message, error) {
 	if !c.isLogin {
 		logging.Warn("客户端并未登录成功，请稍重试")
 		return nil, ErrNotLogin
@@ -73,7 +73,7 @@ func NewClient(msgChanSize int) *Client {
 		listener:  NewTCPMessageListener(addr), // tcp server
 		ctx:       ctx,
 		stop:      cancel,
-		msgBuffer: NewMessageBuffer(msgChanSize, time.Millisecond*100), // 消息缓冲区 <缓冲大小>, <获取消息对超时>
+		msgBuffer: NewMessageBuffer(msgChanSize), // 消息缓冲区 <缓冲大小>
 		wxClient:  inner.NewWxClient(WxApiBaseUrl, tcpHookURL),
 	}
 }
