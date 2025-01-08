@@ -66,7 +66,7 @@ type MessageBuffer struct {
 	timer       *time.Timer
 }
 
-// NewMessageBuffer 创建消息缓冲区
+// NewMessageBuffer 创建消息缓冲区 <缓冲大小>, <获取消息对超时>
 func NewMessageBuffer(bufferSize int, pairTimeOut time.Duration) *MessageBuffer {
 	mb := &MessageBuffer{
 		msgCH:   make(chan *Message, bufferSize),
