@@ -24,7 +24,7 @@ var (
 )
 
 type ICacheManager interface {
-	Save(fileName string, isImg bool, data [][]byte) (*FileInfo, error)
+	Save(fileName string, isImg bool, data []byte) (*FileInfo, error)
 	GetFilePathByFileName(fileName string) (string, error)
 	GetDataByFileName(fileName string) ([]byte, error)
 }
@@ -65,7 +65,7 @@ func GetCacheManager() ICacheManager {
 }
 
 // Save saves a file by its fileName and writes data to the file system.
-func (cm *CacheManager) Save(fileName string, isImg bool, data [][]byte) (*FileInfo, error) {
+func (cm *CacheManager) Save(fileName string, isImg bool, data []byte) (*FileInfo, error) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 
@@ -128,7 +128,7 @@ func (cm *CacheManager) GetDataByFileName(fileName string) ([]byte, error) {
 }
 
 // writeDataToFile writes data to the given file path.
-func writeDataToFile(filePath string, data [][]byte) error {
+func writeDataToFile(filePath string, data []byte) error {
 	dir := filepath.Dir(filePath)
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
@@ -140,10 +140,8 @@ func writeDataToFile(filePath string, data [][]byte) error {
 	}
 	defer file.Close()
 
-	for _, chunk := range data {
-		if _, err := file.Write(chunk); err != nil {
-			return fmt.Errorf("failed to write data to file: %w", err)
-		}
+	if _, err := file.Write(data); err != nil {
+		return fmt.Errorf("failed to write data to file: %w", err)
 	}
 
 	return nil

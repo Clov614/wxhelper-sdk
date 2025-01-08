@@ -9,23 +9,60 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"wxhelper-sdk/inner/manager"
+	"wxhelper-sdk/inner/utils"
 	"wxhelper-sdk/logging"
 )
 
 type Message struct {
-	Content            string `json:"content"`
-	CreateTime         int    `json:"createTime"`
-	DisplayFullContent string `json:"displayFullContent"`
-	FromUser           string `json:"fromUser"`
-	MsgId              int64  `json:"msgId"`
-	MsgSequence        int    `json:"msgSequence"`
-	Pid                int    `json:"pid"`
-	Signature          string `json:"signature"`
-	ToUser             string `json:"toUser"`
-	Type               int    `json:"type"`
-	Base64Img          string `json:"base64Img,omitempty"`
+	Content            string            `json:"content"`
+	CreateTime         int               `json:"createTime"`
+	DisplayFullContent string            `json:"displayFullContent"`
+	FromUser           string            `json:"fromUser"`
+	MsgId              int64             `json:"msgId"`
+	MsgSequence        int               `json:"msgSequence"`
+	Pid                int               `json:"pid"`
+	Signature          string            `json:"signature"`
+	ToUser             string            `json:"toUser"`
+	Type               MsgType           `json:"type"`
+	Base64Img          string            `json:"base64Img,omitempty"`
+	FileInfo           *manager.FileInfo `json:"-"` // 本地保存的文件信息
 
 	account *Account
+}
+
+func (m *Message) handleFileTypeMsg() {
+	switch m.Type {
+	case MsgTypeImage:
+		m.handleImgTypeMsg()
+	default:
+		logging.Warn("Unknown message type. Skip!!")
+
+	}
+}
+
+// 处理图片数据
+func (m *Message) handleImgTypeMsg() {
+	data, err := utils.DecodeBase64(m.Base64Img)
+	if err != nil {
+		logging.ErrorWithErr(err, "DecodeBase64 failed")
+		return
+	}
+	var filename = fmt.Sprintf("%s_%d", m.FromUser, m.MsgId)
+	//fileType, err := imgutil.DetectFileType(data)
+	//if err != nil {
+	//	logging.ErrorWithErr(err, "DetectFileType failed")
+	//} else {
+	//	ext := imgutil.GetEtxByFileType(fileType)
+	//	filename = filename + ext
+	//}
+	cacheManager := manager.GetCacheManager()
+	fileInfo, err := cacheManager.Save(filename+".png", true, data)
+	if err != nil {
+		logging.ErrorWithErr(err, "SaveFileInfo failed")
+	}
+	m.FileInfo = fileInfo
+	return
 }
 
 var (

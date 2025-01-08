@@ -22,10 +22,13 @@ func TestClient_GetMsgPair(t *testing.T) {
 	client := NewClient(100)
 	client.Run(true)
 
-	msg, err := client.GetMsg()
-	if err != nil {
-		t.Error(err)
+	var n = 10 // 接收消息的个数，会阻塞
+	for i := range n {
+		msg, err := client.GetMsg()
+		if err != nil {
+			t.Error(err)
+		}
+		t.Log(fmt.Sprintf("index: %d, msg: %v", i, msg))
 	}
-	t.Log(fmt.Sprintf("msg: %v", msg))
 
 }

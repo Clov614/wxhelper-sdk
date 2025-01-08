@@ -35,7 +35,7 @@ func TestCacheManagerSave(t *testing.T) {
 	// 测试保存文件
 	fileName := "testfile1.txt"
 
-	fileData := [][]byte{[]byte("Hello, "), []byte("world!")}
+	fileData := []byte("test data")
 	fileInfo, err := manager.Save(fileName, false, fileData)
 	if err != nil {
 		t.Fatalf("Save failed: %v", err)
@@ -58,7 +58,7 @@ func TestCacheManagerGetData(t *testing.T) {
 	// 保存测试文件
 	fileName := "testfile2.txt"
 
-	fileData := [][]byte{[]byte("Hello, "), []byte("world!")}
+	fileData := []byte("Hello, world!")
 	_, err := manager.Save(fileName, false, fileData)
 
 	// 测试读取数据
@@ -79,7 +79,7 @@ func TestCacheManagerFilePath(t *testing.T) {
 
 	// 保存测试文件
 	fileName := "testfile3.txt"
-	fileData := [][]byte{[]byte("Sample data")}
+	fileData := []byte("test data")
 	_, err := manager.Save(fileName, false, fileData)
 
 	// 测试获取文件路径

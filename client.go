@@ -51,6 +51,7 @@ func (c *Client) GetMsg() (*Message, error) {
 
 func (c *Client) startListen() error {
 	var handler MessageHandlerFunc = func(message *Message) error {
+		message.handleFileTypeMsg() // 不同类型消息处理
 		err := c.msgBuffer.Put(c.ctx, message)
 		if err != nil {
 			return fmt.Errorf("MessageHandler err: %w", err)
