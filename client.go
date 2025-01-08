@@ -6,14 +6,25 @@ package wxhelper_sdk
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/eatmoreapple/env"
 	"time"
+	"wxhelper-sdk/inner"
 	"wxhelper-sdk/logging"
 )
 
 const (
-	TCP_ADDR = "TCP_ADDR"
+	ENVTcpAddr          = "TCP_ADDR"
+	ENVWxApiBaseUrl     = "WX_API_BASE_URL"
+	ENVTcpHookURL       = "WX_HOOK_URL"
+	DefaultTcpAddr      = "19099"
+	DefaultWxApiBaseUrl = "http://127.0.0.1:19088"
+	DefaultTcpHookURL   = "127.0.0.1:19089"
+)
+
+var (
+	ErrNotLogin = errors.New("not login")
 )
 
 type Client struct {
@@ -21,10 +32,16 @@ type Client struct {
 	ctx       context.Context
 	stop      context.CancelFunc
 	msgBuffer *MessageBuffer
+	wxClient  *inner.WxClient
+	isLogin   bool
 }
 
 // GetMsgPair 获取消息对
 func (c *Client) GetMsgPair() (*MessagePairs, error) {
+	if !c.isLogin {
+		logging.Warn("客户端并未登录成功，请稍重试")
+		return nil, ErrNotLogin
+	}
 	msgPair, err := c.msgBuffer.Get(c.ctx)
 	if err != nil {
 		return nil, err
@@ -48,22 +65,35 @@ func (c *Client) startListen() error {
 }
 
 func NewClient(msgChanSize int) *Client {
-	addr := env.Name(TCP_ADDR).StringOrElse("19099")
+	addr := env.Name(ENVTcpAddr).StringOrElse(DefaultTcpAddr)                   // "19099"
+	WxApiBaseUrl := env.Name(ENVWxApiBaseUrl).StringOrElse(DefaultWxApiBaseUrl) // "http:// 127.0.0.1:19088"
+	tcpHookURL := env.Name(ENVTcpHookURL).StringOrElse(DefaultTcpHookURL)       //  "127.0.0.1:19089"
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Client{
-		listener:  NewTCPMessageListener(addr),
+		listener:  NewTCPMessageListener(addr), // tcp server
 		ctx:       ctx,
 		stop:      cancel,
-		msgBuffer: NewMessageBuffer(msgChanSize, time.Millisecond*100),
+		msgBuffer: NewMessageBuffer(msgChanSize, time.Millisecond*100), // 消息缓冲区 <缓冲大小>, <获取消息对超时>
+		wxClient:  inner.NewWxClient(WxApiBaseUrl, tcpHookURL),
 	}
 }
 
-// Run 运行
+// Run 运行tcp监听 以及 请求tcp监听信息
 func (c *Client) Run() {
 	err := c.startListen()
-	// TODO test 发起 unHooksyncMsg && hooksyncMsg
-	// TODO Get需要hook成功后才能使用 hookstate状态判断
+	if err != nil {
+		panic(err)
+	}
+
+	err = c.wxClient.HookSyncMsg(c.ctx)
 	if err != nil {
 		logging.Error(err.Error())
+	}
+
+	c.isLogin, err = c.wxClient.CheckLogin(c.ctx)
+	if err != nil {
+		logging.ErrorWithErr(err, "checkLogin error")
+		c.stop()
+		return
 	}
 }
