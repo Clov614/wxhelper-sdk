@@ -9,7 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/eatmoreapple/env"
-	"time"
+	"github.com/rs/zerolog"
 	"wxhelper-sdk/inner"
 	"wxhelper-sdk/logging"
 )
@@ -79,13 +79,20 @@ func NewClient(msgChanSize int) *Client {
 }
 
 // Run 运行tcp监听 以及 请求tcp监听信息
-func (c *Client) Run() {
-	err := c.startListen()
-	if err != nil {
-		panic(err)
+func (c *Client) Run(debug bool) {
+	if debug {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	} else {
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
 
-	err = c.wxClient.HookSyncMsg(c.ctx)
+	go func() {
+		err := c.startListen()
+		if err != nil {
+			panic(err)
+		}
+	}()
+	err := c.wxClient.HookSyncMsg(c.ctx)
 	if err != nil {
 		logging.Error(err.Error())
 	}

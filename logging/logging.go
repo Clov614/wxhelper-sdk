@@ -13,16 +13,14 @@ import (
 	"sync"
 )
 
-var (
-	once sync.Once
-)
+const projectName = "[wxhelper-sdk]"
 
 func init() {
 	zerolog.TimeFieldFormat = "2006-01-02 15:04:05"
 	zerolog.MultiLevelWriter(zerolog.ConsoleWriter{Out: os.Stderr})
 	multi := zerolog.MultiLevelWriter(zerolog.ConsoleWriter{Out: os.Stderr})
 
-	log.Logger = zerolog.New(multi).With().Timestamp().Logger()
+	log.Logger = zerolog.New(multi).With().Timestamp().Str("project", projectName).Logger()
 }
 
 // Info 定义简化的日志函数
