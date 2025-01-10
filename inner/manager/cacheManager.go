@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"wxhelper-sdk/inner/utils"
 )
@@ -129,8 +130,7 @@ func (cm *CacheManager) GetDataByFileName(fileName string) ([]byte, error) {
 
 // writeDataToFile writes data to the given file path.
 func writeDataToFile(filePath string, data []byte) error {
-	dir := filepath.Dir(filePath)
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(filePath), os.ModePerm); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
@@ -149,13 +149,8 @@ func writeDataToFile(filePath string, data []byte) error {
 
 // getFileExtension extracts the file extension from the file name.
 func getFileExtension(fileName string) string {
-	if len(fileName) == 0 {
-		return ""
-	}
-	for i := len(fileName) - 1; i >= 0; i-- {
-		if fileName[i] == '.' {
-			return fileName[i+1:]
-		}
+	if i := strings.LastIndex(fileName, "."); i >= 0 {
+		return fileName[i+1:]
 	}
 	return ""
 }

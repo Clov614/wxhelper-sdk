@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func TestClient_GetMsgPair(t *testing.T) {
+func TestClient_GetMsg(t *testing.T) {
 	os.Setenv(ENVTcpAddr, "19089")
 	os.Setenv(ENVWxApiBaseUrl, "http://127.0.0.1:19088")
 	os.Setenv(ENVTcpHookURL, "192.168.31.149:19089")

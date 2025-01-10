@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -22,7 +23,8 @@ type WxClient struct {
 
 var (
 	ErrWxClientResp = errors.New("wx-client's response err")
-	ErrJsonDecoder  = errors.New("json decoder error")
+	ErrJSONDecoder  = errors.New("JSON decoder error")
+	colonSeparator  = ":"
 )
 
 func NewWxClient(WxApiBaseUrl string, tcpHookURL string) *WxClient {
@@ -38,7 +40,7 @@ func (c *WxClient) CheckLogin(ctx context.Context) (bool, error) {
 	defer func() { _ = resp.Body.Close() }()
 	var r result[any]
 	if err = json.NewDecoder(resp.Body).Decode(&r); err != nil {
-		return false, fmt.Errorf("%w: %w", ErrJsonDecoder, err)
+		return false, fmt.Errorf("%w: %w", ErrJSONDecoder, err)
 	}
 	return r.Code == 1, nil
 }
@@ -51,7 +53,7 @@ func (c *WxClient) GetUserInfo(ctx context.Context) (*models.Account, error) {
 	defer func() { _ = resp.Body.Close() }()
 	var r result[*models.Account]
 	if err = json.NewDecoder(resp.Body).Decode(&r); err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrJsonDecoder, err)
+		return nil, fmt.Errorf("%w: %w", ErrJSONDecoder, err)
 	}
 	if r.Code != 1 {
 		return nil, errors.New("get user info failed")
@@ -59,20 +61,24 @@ func (c *WxClient) GetUserInfo(ctx context.Context) (*models.Account, error) {
 	return r.Data, nil
 }
 
+func (c *WxClient) handleResponse(resp *http.Response, expectedCode int) error {
+	defer func() { _ = resp.Body.Close() }()
+	var r result[any]
+	if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {
+		return fmt.Errorf("json decoder error: %w", err)
+	}
+	if r.Code != expectedCode {
+		return fmt.Errorf("unexpected response code: %d, msg: %s", r.Code, r.Msg)
+	}
+	return nil
+}
+
 func (c *WxClient) SendText(ctx context.Context, to string, content string) error {
 	resp, err := c.transport.SendText(ctx, to, content)
 	if err != nil {
-		return err
+		return fmt.Errorf("send text failed: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
-	var r result[any]
-	if err = json.NewDecoder(resp.Body).Decode(&r); err != nil {
-		return err
-	}
-	if r.Code == 0 {
-		return errors.New("send text failed")
-	}
-	return nil
+	return c.handleResponse(resp, 0)
 }
 
 func (c *WxClient) GetContactList(ctx context.Context) (models.Members, error) {
@@ -113,7 +119,7 @@ func (c *WxClient) HTTPHookSyncMsg(ctx context.Context, url *url.URL, timeout ti
 }
 
 func (c *WxClient) HookSyncMsg(ctx context.Context) error {
-	hookUrl := strings.Split(c.transport.TcpHookURL, ":")
+	hookUrl := strings.Split(c.transport.TcpHookURL, colonSeparator)
 	ip := hookUrl[0]
 	port, err := strconv.Atoi(hookUrl[1])
 	if err != nil {
