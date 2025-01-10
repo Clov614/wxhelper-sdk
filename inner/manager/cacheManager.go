@@ -76,7 +76,7 @@ func (cm *CacheManager) Save(fileName string, isImg bool, data []byte) (*FileInf
 	}
 
 	// Generate file path
-	filePath, err := utils.ConvertToWindows(fileName)
+	filePath, err := utils.ConvertToWindows(fileName, isImg)
 	if err != nil {
 		return nil, fmt.Errorf("convert to windows file failed: %w", err)
 	}
